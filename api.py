@@ -8,10 +8,10 @@ from tensorflow.keras.models import load_model
 import pickle
 
 # Завантажуємо модель, векторизатор та енкодер
-model = load_model('keyword_article_model.keras')
-with open('vectorizer.pkl', 'rb') as f:
+model = load_model('./keyword_article_model.keras')
+with open('./vectorizer.pkl', 'rb') as f:
     vectorizer = pickle.load(f)
-with open('label_encoder.pkl', 'rb') as f:
+with open('./label_encoder.pkl', 'rb') as f:
     label_encoder = pickle.load(f)
 
 app = FastAPI()
@@ -57,6 +57,3 @@ def get_predictions(request: QueryRequest):
     predictions = predict(request.query)
     print(f"Прогноз: {predictions}")
     return {"predictions": predictions}
-
-if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
