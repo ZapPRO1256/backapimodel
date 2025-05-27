@@ -8,7 +8,7 @@ from tensorflow.keras.models import load_model
 import pickle
 
 # Завантажуємо модель, векторизатор та енкодер
-model = load_model('./keyword_article_model.keras')
+model = load_model('./keyword_article_model.h5')
 with open('./vectorizer.pkl', 'rb') as f:
     vectorizer = pickle.load(f)
 with open('./label_encoder.pkl', 'rb') as f:
