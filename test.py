@@ -1,6 +1,6 @@
-from tensorflow.keras.models import load_model
-model = load_model('keyword_article_model.keras')
-model.summary()
-
 import os
-print("Файли в поточній директорії:", os.listdir("."))
+print("Вміст папки:", os.listdir("."))
+print("Розмір keyword_article_model.keras:", os.path.getsize("keyword_article_model.keras"))
+
+from keras.models import load_model
+model = load_model("keyword_article_model.keras")
