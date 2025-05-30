@@ -8,7 +8,7 @@ from sentence_transformers import SentenceTransformer, util
 import pickle
 
 # ✅ Завантаження моделі SBERT
-model = SentenceTransformer("MrZaper/CybMod")
+model = SentenceTransformer("MrZaper/LiteModel")
 
 # ✅ Завантаження векторів статей та відповідних ключів
 article_embeddings = np.load('./sbert_embeddings.npy')
