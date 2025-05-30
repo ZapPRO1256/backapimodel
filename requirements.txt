@@ -6,3 +6,5 @@ deep-translator==1.11.4
 numpy==1.26.4
 pandas==2.2.3
 joblib==1.4.2
+torch==2.7.0
+sentence-transformers==4.1.0
