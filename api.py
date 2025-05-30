@@ -8,11 +8,11 @@ from sentence_transformers import SentenceTransformer, util
 import pickle
 
 # ✅ Завантаження моделі SBERT
-model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+model = SentenceTransformer("MrZaper/CybMod")
 
 # ✅ Завантаження векторів статей та відповідних ключів
-article_embeddings = np.load("./sbert_embeddings.npy")
-with open("./sbert_labels.pkl", "rb") as f:
+article_embeddings = np.load('./sbert_embeddings.npy')
+with open('./sbert_labels.pkl', "rb") as f:
     article_keys = pickle.load(f)
 
 app = FastAPI()
