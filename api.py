@@ -4,21 +4,22 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from deep_translator import GoogleTranslator
-from tensorflow.keras.models import load_model
+from sentence_transformers import SentenceTransformer, util
 import pickle
 
-# Завантажуємо модель, векторизатор та енкодер
-model = load_model('./keyword_article_model.h5')
-with open('./vectorizer.pkl', 'rb') as f:
-    vectorizer = pickle.load(f)
-with open('./label_encoder.pkl', 'rb') as f:
-    label_encoder = pickle.load(f)
+# ✅ Завантаження моделі SBERT
+model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+
+# ✅ Завантаження векторів статей та відповідних ключів
+article_embeddings = np.load("./sbert_embeddings.npy")
+with open("./sbert_labels.pkl", "rb") as f:
+    article_keys = pickle.load(f)
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # можна обмежити домени
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,28 +28,28 @@ app.add_middleware(
 class QueryRequest(BaseModel):
     query: str
 
-def preprocess_query(query: str) -> np.ndarray:
+def preprocess_query(query: str) -> str:
     try:
-        # Перекладемо запит англійською
-        translated = GoogleTranslator(source='auto', target='en').translate(query)
+        return GoogleTranslator(source="auto", target="en").translate(query)
     except Exception as e:
         print(f"Помилка перекладу: {e}")
-        translated = query
-    # Простіше приведення рядка: видаляємо коми, приводимо до нижнього регістру
-    processed = " ".join(translated.lower().replace(",", " ").split())
-    # Подвоюємо рядок як у тренуванні
-    repeated = f"{processed} {processed}"
-    # Векторизуємо
-    X = vectorizer.transform([repeated]).toarray()
-    return X
+        return query
 
 def predict(query: str, top_n=5):
-    X = preprocess_query(query)
-    preds = model.predict(X)[0]
-    top_indices = np.argsort(preds)[-top_n:][::-1]
-    top_scores = preds[top_indices]
-    top_labels = label_encoder.inverse_transform(top_indices)
-    results = [{"code": label, "confidence": float(score)} for label, score in zip(top_labels, top_scores)]
+    translated_query = preprocess_query(query)
+    query_embedding = model.encode(translated_query, convert_to_tensor=True)
+
+    # ✅ Обчислення косинусної подібності
+    similarities = util.cos_sim(query_embedding, article_embeddings)[0]
+    top_results = np.argsort(-similarities.cpu().numpy())[:top_n]
+
+    results = [
+        {
+            "code": article_keys[idx],
+            "confidence": float(similarities[idx])
+        }
+        for idx in top_results
+    ]
     return results
 
 @app.post("/predict")
@@ -57,3 +58,7 @@ def get_predictions(request: QueryRequest):
     predictions = predict(request.query)
     print(f"Прогноз: {predictions}")
     return {"predictions": predictions}
+
+# Якщо хочеш запускати напряму:
+# if __name__ == "__main__":
+#     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
