@@ -7,10 +7,8 @@ from deep_translator import GoogleTranslator
 from sentence_transformers import SentenceTransformer, util
 import pickle
 
-# ✅ Завантаження моделі SBERT
 model = SentenceTransformer("MrZaper/LiteModel")
 
-# ✅ Завантаження векторів статей та відповідних ключів
 article_embeddings = np.load('./sbert_embeddings.npy')
 with open('./sbert_labels.pkl', "rb") as f:
     article_keys = pickle.load(f)
@@ -38,17 +36,23 @@ def preprocess_query(query: str) -> str:
 def predict(query: str, top_n=5):
     translated_query = preprocess_query(query)
     query_embedding = model.encode(translated_query, convert_to_tensor=True)
-
-    # ✅ Обчислення косинусної подібності
-    similarities = util.cos_sim(query_embedding, article_embeddings)[0]
-    top_results = np.argsort(-similarities.cpu().numpy())[:top_n]
-
+    similarities = util.cos_sim(query_embedding, article_embeddings)[0].cpu().numpy()
+    key_to_best_similarity = {}
+    for idx, sim in enumerate(similarities):
+        key = article_keys[idx]
+        if key not in key_to_best_similarity or sim > key_to_best_similarity[key]:
+            key_to_best_similarity[key] = sim
+    sorted_results = sorted(
+        key_to_best_similarity.items(),
+        key=lambda x: x[1],
+        reverse=True
+    )
     results = [
         {
-            "code": article_keys[idx],
-            "confidence": float(similarities[idx])
+            "code": key,
+            "confidence": float(similarity)
         }
-        for idx in top_results
+        for key, similarity in sorted_results[:top_n]
     ]
     return results
 
@@ -58,7 +62,3 @@ def get_predictions(request: QueryRequest):
     predictions = predict(request.query)
     print(f"Прогноз: {predictions}")
     return {"predictions": predictions}
-
-# Якщо хочеш запускати напряму:
-# if __name__ == "__main__":
-#     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
